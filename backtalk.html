@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Backtalk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow tape-deck column; a step strip, one card per step, big transport buttons. */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --ink:#1a1f36; --muted:#5d6582; --line:#d8dce8;
+  --tape:#f0571c; --tape-ink:#ffffff; --rev:#3150e8; --rev-soft:#e3e8ff; --tape-soft:#ffe6da;
+  --good:#1f8a4c; --bad:#c2372f;
+  --f-display:"Bungee","Arial Black",Impact,sans-serif;
+  --f-body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10131f; --surface:#1a1e2e; --ink:#eef0f8; --muted:#9aa2bf; --line:#2a3047;
+  --tape:#ff7a3d; --tape-ink:#1a0d05; --rev:#8197ff; --rev-soft:#232b52; --tape-soft:#3a2216;
+  --good:#4cc882; --bad:#ff7a70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10131f; --surface:#1a1e2e; --ink:#eef0f8; --muted:#9aa2bf; --line:#2a3047;
+  --tape:#ff7a3d; --tape-ink:#1a0d05; --rev:#8197ff; --rev-soft:#232b52; --tape-soft:#3a2216;
+  --good:#4cc882; --bad:#ff7a70; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-family:var(--f-display);font-size:28px;letter-spacing:.02em;line-height:1}
+.logo span{color:var(--tape);display:inline-block;transform:scaleX(-1)}
+.score{display:flex;gap:8px;font-size:14px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.chip b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;margin-left:6px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.steps div{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-top:3px solid var(--line);padding-top:6px}
+.steps div.on{color:var(--ink);border-color:var(--tape)}
+.steps div.done{border-color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;line-height:1.25;margin:0;text-wrap:balance}
+.who{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 4px}
+p{margin:0;color:var(--muted)}
+.warn{background:var(--tape-soft);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px}
+.err{color:var(--bad);font-size:14px}
+label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input[type=text]:focus-visible{outline:2px solid var(--tape);outline-offset:1px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+button{font:inherit;font-weight:700;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px 14px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--tape);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.rev{background:var(--rev);color:#fff;border-color:var(--rev)}
+.fwd{background:var(--tape);color:var(--tape-ink);border-color:var(--tape)}
+.good{background:var(--good);color:#fff;border-color:var(--good)}
+.bad{background:transparent;color:var(--bad);border-color:var(--bad)}
+.recbox{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0}
+.recbtn{width:96px;height:96px;border-radius:50%;background:var(--tape);border:6px solid var(--tape-soft);padding:0;display:grid;place-items:center}
+.recbtn i{display:block;width:30px;height:30px;border-radius:50%;background:var(--tape-ink)}
+.recbtn.live i{border-radius:6px}
+.recbtn.live{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--tape) 25%,transparent)}}
+@media (prefers-reduced-motion:reduce){.recbtn.live{animation:none}}
+.timer{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+.deck{border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.deck.f{background:var(--tape-soft)}
+.deck.r{background:var(--rev-soft)}
+.deck small{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+canvas{width:100%;height:64px;display:block}
+.file{font-size:13px;color:var(--muted);text-align:center}
+.file input{display:none}
+.file u{cursor:pointer;color:var(--ink)}
+.foot{font-size:13px;color:var(--muted);text-align:center}
+.linkbtn{background:none;border:0;padding:0;font-weight:500;text-decoration:underline;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">BACK<span>TALK</span></div>
+    <div class="score" id="score"></div>
+  </header>
+  <div class="steps" id="steps"></div>
+  <main class="card" id="card"></main>
+  <div class="foot"><button class="linkbtn" data-a="reset">New game</button></div>
+</div>
+
+<script>
+const S={names:["Player 1","Player 2"],scores:[0,0],round:1,a:0,step:"setup",secret:null,secretRev:null,imit:null,imitRev:null,revealed:false,err:""};
+const B=()=>1-S.a;
+const STEPS=[["record","Secret"],["listen","Listen"],["imitate","Imitate"],["reveal","Reveal"]];
+
+/* ---------- audio ---------- */
+let ctx=null;
+function ac(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();return ctx}
+function decode(ab){return new Promise((res,rej)=>{const p=ac().decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)})}
+function trim(buf){
+  const d=buf.getChannelData(0);let peak=0;for(let i=0;i<d.length;i++){const v=Math.abs(d[i]);if(v>peak)peak=v}
+  const th=Math.max(.015,peak*.08);let s=0,e=d.length-1;
+  while(s<d.length&&Math.abs(d[s])<th)s++;while(e>s&&Math.abs(d[e])<th)e--;
+  const pad=Math.floor(buf.sampleRate*.08);s=Math.max(0,s-pad);e=Math.min(d.length-1,e+pad);
+  if(e-s<buf.sampleRate*.2)return buf;
+  const out=ac().createBuffer(buf.numberOfChannels,e-s+1,buf.sampleRate);
+  for(let c=0;c<buf.numberOfChannels;c++)out.getChannelData(c).set(buf.getChannelData(c).subarray(s,e+1));
+  return out}
+function reverse(buf){
+  const out=ac().createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate);
+  for(let c=0;c<buf.numberOfChannels;c++){const s=buf.getChannelData(c),d=out.getChannelData(c),n=s.length;for(let i=0;i<n;i++)d[i]=s[n-1-i]}
+  return out}
+
+let cur=null;
+function stopPlay(){if(cur){try{cur.src.stop()}catch(e){}const c=cur;cur=null;draw(c.cv,c.buf,c.kind,0);c.btn&&(c.btn.textContent=c.label)}}
+function play(buf,cvId,kind,btn){
+  const same=cur&&cur.btn===btn;stopPlay();if(same)return;
+  const c=ac(),src=c.createBufferSource();src.buffer=buf;src.connect(c.destination);
+  const t0=c.currentTime,cv=document.getElementById(cvId);
+  cur={src,cv,buf,kind,btn,label:btn.textContent};btn.textContent="■ Stop";
+  src.start();
+  const tick=()=>{if(!cur||cur.src!==src)return;const p=(c.currentTime-t0)/buf.duration;draw(cv,buf,kind,Math.min(p,1));if(p<1)requestAnimationFrame(tick)};tick();
+  src.onended=()=>{if(cur&&cur.src===src)stopPlay()}}
+
+function draw(cv,buf,kind,prog){
+  if(!cv||!buf)return;
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
+  const cs=getComputedStyle(document.documentElement);
+  const col=cs.getPropertyValue(kind==="r"?"--rev":"--tape").trim(),dim=cs.getPropertyValue("--muted").trim();
+  const d=buf.getChannelData(0),bars=Math.max(20,Math.floor(w/5)),step=Math.floor(d.length/bars)||1;
+  let peaks=[],mx=0;
+  for(let b=0;b<bars;b++){let m=0;for(let i=b*step;i<(b+1)*step&&i<d.length;i++){const v=Math.abs(d[i]);if(v>m)m=v}peaks.push(m);if(m>mx)mx=m}
+  for(let b=0;b<bars;b++){
+    const v=mx?peaks[b]/mx:0,bh=Math.max(2,v*(h-6)),x=b*(w/bars);
+    g.fillStyle=(b/bars)<prog?col:(prog>0?dim:col);g.globalAlpha=(b/bars)<prog||prog===0?1:.45;
+    g.fillRect(x,(h-bh)/2,Math.max(2,w/bars-2),bh)}
+  g.globalAlpha=1}
+
+/* ---------- recording ---------- */
+let rec=null,recTimer=null,recStart=0;
+const MAXSEC=10;
+async function toggleRec(target){
+  if(rec){rec.stop();return}
+  S.err="";
+  let stream;
+  try{ac();stream=await navigator.mediaDevices.getUserMedia({audio:true})}
+  catch(e){S.err="Can't reach the microphone. Allow mic access in your browser, or open this file in Chrome or Safari. You can also pick an audio file below.";render();return}
+  const chunks=[];rec=new MediaRecorder(stream);
+  rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  rec.onstop=async()=>{
+    clearInterval(recTimer);stream.getTracks().forEach(t=>t.stop());const r=rec;rec=null;
+    try{await take(new Blob(chunks,{type:r.mimeType}),target)}catch(e){S.err="That recording couldn't be read. Try again.";render()}};
+  rec.start();recStart=Date.now();
+  const btn=document.getElementById("recbtn"),tm=document.getElementById("timer");
+  btn.classList.add("live");btn.setAttribute("aria-label","Stop recording");
+  recTimer=setInterval(()=>{const s=(Date.now()-recStart)/1000;tm.textContent=s.toFixed(1)+"s / "+MAXSEC+"s";if(s>=MAXSEC&&rec)rec.stop()},100)}
+async function take(blob,target){
+  const buf=trim(await decode(await blob.arrayBuffer()));
+  if(target==="secret"){S.secret=buf;S.secretRev=reverse(buf)}else{S.imit=buf;S.imitRev=reverse(buf)}
+  render()}
+async function fromFile(input,target){
+  const f=input.files[0];if(!f)return;S.err="";
+  try{await take(f,target)}catch(e){S.err="That file isn't audio the browser can play.";render()}}
+
+/* ---------- screens ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const recUI=(target,has)=>`
+  <div class="recbox">
+    <button class="recbtn" id="recbtn" data-a="rec" data-t="${target}" aria-label="${has?"Record again":"Start recording"}"><i></i></button>
+    <div class="timer" id="timer">${has?"Tap to record again":"Tap to record · tap to stop"}</div>
+  </div>
+  <div class="file"><label style="display:inline"><input type="file" accept="audio/*" data-file="${target}">or <u>pick an audio file</u></label></div>
+  ${S.err?`<p class="err">${esc(S.err)}</p>`:""}`;
+const deck=(id,kind,tag)=>`<div class="deck ${kind}"><small>${tag}</small><canvas id="${id}"></canvas></div>`;
+
+function render(){
+  stopPlay();
+  const n=S.names;
+  document.getElementById("score").innerHTML=S.step==="setup"?"":n.map((x,i)=>`<span class="chip">${esc(x)}<b>${S.scores[i]}</b></span>`).join("");
+  const idx=STEPS.findIndex(s=>s[0]===S.step);
+  document.getElementById("steps").innerHTML=S.step==="setup"?"":STEPS.map((s,i)=>`<div class="${i===idx?"on":i<idx?"done":""}">${s[1]}</div>`).join("");
+  const A=esc(n[S.a]),Bn=esc(n[B()]);let h="";
+
+  if(S.step==="setup")h=`
+    <div><h1>Say it. Flip it. Guess it.</h1></div>
+    <p>One player records a secret word or name. The other hears it backwards, copies that weird sound, and the app flips the copy forward again. Can they work out what was said?</p>
+    <div class="row">
+      <label>Player 1<input type="text" id="p0" value="${esc(n[0])}" maxlength="16"></label>
+      <label>Player 2<input type="text" id="p1" value="${esc(n[1])}" maxlength="16"></label>
+    </div>
+    <button class="primary" data-a="start">Start round 1</button>`;
+
+  else if(S.step==="record")h=`
+    <div><p class="who">Round ${S.round} · ${A}</p><h1>${A}, record a secret word or name</h1></div>
+    <div class="warn">${Bn}, look away and cover your ears.</div>
+    ${recUI("secret",!!S.secret)}
+    ${S.secret?`${deck("cvS","f","▶ PLAY · ORIGINAL")}
+      <div class="row"><button class="fwd" data-a="play" data-b="secret" data-cv="cvS" data-k="f">▶ Check it (quietly)</button></div>
+      <button class="primary" data-a="go" data-to="listen">Done, hand the phone to ${Bn}</button>`:""}`;
+
+  else if(S.step==="listen")h=`
+    <div><p class="who">Round ${S.round} · ${Bn}</p><h1>${Bn}, here's the secret played backwards</h1></div>
+    <p>Listen as many times as you like. You'll have to copy this exact sound next.</p>
+    ${deck("cvR","r","◀◀ REV · SECRET")}
+    <button class="rev" data-a="play" data-b="secretRev" data-cv="cvR" data-k="r">◀◀ Play backwards</button>
+    <button class="primary" data-a="go" data-to="imitate">I'm ready to copy it</button>`;
+
+  else if(S.step==="imitate")h=`
+    <div><p class="who">Round ${S.round} · ${Bn}</p><h1>Now copy that backwards sound</h1></div>
+    <p>Say it exactly how it sounded, gibberish and all.</p>
+    ${deck("cvR","r","◀◀ REV · SECRET")}
+    <button class="rev" data-a="play" data-b="secretRev" data-cv="cvR" data-k="r">◀◀ Hear it again</button>
+    ${recUI("imit",!!S.imit)}
+    ${S.imit?`${deck("cvI","f","▶ YOUR COPY")}
+      <button data-a="play" data-b="imit" data-cv="cvI" data-k="f">▶ Hear your copy</button>
+      <button class="primary" data-a="go" data-to="reveal">Flip my copy</button>`:""}`;
+
+  else if(S.step==="reveal")h=`
+    <div><p class="who">Round ${S.round} · ${Bn}</p><h1>Your copy, flipped forward</h1></div>
+    <p>Play it, then say your guess out loud before revealing.</p>
+    ${deck("cvF","r","◀◀ REV · YOUR COPY")}
+    <button class="rev" data-a="play" data-b="imitRev" data-cv="cvF" data-k="r">◀◀ Play flipped copy</button>
+    ${S.revealed?`${deck("cvS","f","▶ PLAY · "+A.toUpperCase()+"'S ORIGINAL")}
+      <button class="fwd" data-a="play" data-b="secret" data-cv="cvS" data-k="f">▶ Play original again</button>
+      <p>Did ${Bn} guess it?</p>
+      <div class="row"><button class="good" data-a="score" data-v="1">Got it, +1</button><button class="bad" data-a="score" data-v="0">Missed it</button></div>`
+    :`<button class="primary" data-a="reveal">Reveal ${A}'s original</button>`}`;
+
+  document.getElementById("card").innerHTML=h;
+  [["cvS","secret","f"],["cvR","secretRev","r"],["cvI","imit","f"],["cvF","imitRev","r"]].forEach(([id,k,kind])=>draw(document.getElementById(id),S[k],kind,0));
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-a]");if(!t)return;const a=t.dataset.a;
+  if(a==="start"){S.names=[0,1].map(i=>document.getElementById("p"+i).value.trim()||"Player "+(i+1));S.step="record";render()}
+  else if(a==="rec")toggleRec(t.dataset.t);
+  else if(a==="play"){ac();play(S[t.dataset.b],t.dataset.cv,t.dataset.k,t)}
+  else if(a==="go"){S.err="";S.step=t.dataset.to;render();window.scrollTo(0,0)}
+  else if(a==="reveal"){S.revealed=true;render();const b=document.querySelector('[data-b="secret"]');b&&play(S.secret,"cvS","f",b)}
+  else if(a==="score"){if(t.dataset.v==="1")S.scores[B()]++;S.a=B();S.round++;Object.assign(S,{secret:null,secretRev:null,imit:null,imitRev:null,revealed:false,err:"",step:"record"});render();window.scrollTo(0,0)}
+  else if(a==="reset"){Object.assign(S,{scores:[0,0],round:1,a:0,step:"setup",secret:null,secretRev:null,imit:null,imitRev:null,revealed:false,err:""});render()}
+});
+document.addEventListener("change",e=>{const f=e.target.closest("[data-file]");if(f)fromFile(f,f.dataset.file)});
+window.addEventListener("resize",()=>{if(!cur)[["cvS","secret","f"],["cvR","secretRev","r"],["cvI","imit","f"],["cvF","imitRev","r"]].forEach(([id,k,kind])=>draw(document.getElementById(id),S[k],kind,0))});
+render();
+</script>
+</body>
+</html>
